@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+
+# Build folders
+build
+obj_dir
+
+# Trace out
+*.vcd
