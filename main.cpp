@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <verilated_vcd_c.h>
 
+// verilator  -Wall --build --exe --trace -cc main.cpp rv32.v ALU.v MEM.v
+// gtkwave ./out.vcd
+
 int main(int argc, char **argv) {
   // Initialize Verilators variables
   Verilated::commandArgs(argc, argv);
@@ -18,15 +21,16 @@ int main(int argc, char **argv) {
 
   // fill intr memory
   // TODO: load ELF
-  top_module->rv32->instr_mem->mem_buff[0] = 0xFF;
-  top_module->rv32->instr_mem->mem_buff[0xF] = 0xF;
+  top_module->rv32->instr_mem->mem_buff[0] = 0xF1F2F3F4;
+  top_module->rv32->instr_mem->mem_buff[0x1] = 0xF5F6F7F8u;
+  top_module->rv32->instr_mem->mem_buff[0x4] = 0xA0AFu;
+  top_module->rv32->pc = 0x0;
 
   // switch the clock
   vluint64_t vtime = 0;
   int clock = 0;
-  top_module->pc = 0x0;
-  top_module->we = 0x0;
-  top_module->w = 0b010;
+  //top_module->enable = 0x1;
+  //top_module->w = 0b000;
 
   // top_module->b = 0x2;
   // top_module->ALUop = 0b0000;
@@ -35,8 +39,8 @@ int main(int argc, char **argv) {
     if (vtime % 8 == 0)
       clock ^= 1;
 
-    if (vtime > 50)
-      top_module->pc = 0xF;
+    // if (vtime > 50)
+    //   top_module->pc = 0xF;
 
     top_module->clk = clock;
     top_module->eval();
