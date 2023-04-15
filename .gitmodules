@@ -1,0 +1,3 @@
+[submodule "3rd_party/sim2022"]
+	path = 3rd_party/sim2022
+	url = git@github.com:xoRnyTeam/sim2022.git
