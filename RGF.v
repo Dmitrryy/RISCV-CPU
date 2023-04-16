@@ -8,7 +8,7 @@ module RGF(
     input [31:0] data,
 
     output [31:0] val1, // read value of rn1
-    output [31:0] val2, // read value of rn2
+    output [31:0] val2  // read value of rn2
 );
 
 reg [31:0] registers [31:1];
