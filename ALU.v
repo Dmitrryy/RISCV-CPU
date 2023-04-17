@@ -24,7 +24,7 @@ always @(*) begin
     //set less than unsigned
     `ALU_SLTU: ALUOut=a < b ? 32'b1:32'b0;
     `ALU_A: ALUOut = a;
-    `AKU_B: ALUOut = b;
+    `ALU_B: ALUOut = b;
     //by default do nothing
     default: ;
    endcase 

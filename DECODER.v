@@ -14,10 +14,10 @@ module DECODER (
     output reg [3:0] ALU_op,
     output reg MemToReg, MemWrite,
     // ALUSrc1:
-    // 0 - reg
+    // 0 - rs1
     // 1 - pc
     // ALUSrc2:
-    // 00 - reg
+    // 00 - rs2
     // 01 - imm
     // 11 - 4
     output reg ALUSrc1, 
@@ -28,7 +28,7 @@ module DECODER (
     // 00 - pc + 4
     // 01 - pc + imm
     // 11 - rs1 + imm
-    output reg [1:0] NextPC
+    output logic [1:0] NextPC
 );
 
 localparam [6:0]R_TYPE  = 7'b0110011,
@@ -153,7 +153,7 @@ always @(*) begin
             ALUSrc1 = 0;
             ALUSrc2 = 2'b01; // imm
             Branch = 0;
-            RegWrite = 1;
+            RegWrite = 0;
             NextPC = 2'b00; // pc + 4
             ALU_op = `ALU_ADD;
         end

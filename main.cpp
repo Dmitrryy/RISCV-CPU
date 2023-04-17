@@ -1,6 +1,6 @@
 #include "VRV32.h"
 #include "VRV32_RV32.h"
-#include "VRV32_MEM.h"
+#include "VRV32_MEM__Nf.h"
 #include <verilated_vcd_c.h>
 
 #include <array>
