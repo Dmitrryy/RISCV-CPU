@@ -35,5 +35,11 @@
 build
 obj_dir
 
+# bin
+*.out
+
+# vs code
+*.vscode
+
 # Trace out
 *.vcd

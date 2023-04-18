@@ -13,7 +13,7 @@ cmake -B build -S .
 cmake --build build
 ```
 ```
-./build/VRV32
+./build/VRV32 -p <rv32i-ELF>
 ```
 ```
 gtkwave ./out.vcd

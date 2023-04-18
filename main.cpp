@@ -1,72 +1,131 @@
 #include "VRV32.h"
+#include "VRV32_MEM__N11.h"
+#include "VRV32_RGF.h"
 #include "VRV32_RV32.h"
-#include "VRV32_MEM__Nf.h"
+#include "VRV32_RegPC.h"
 #include <verilated_vcd_c.h>
+
+#include <CLI/CLI.hpp>
+#include <elfio/elfio.hpp>
 
 #include <array>
 #include <iostream>
-#include <stdlib.h>
 
-// verilator  --build --exe --trace -cc RV32.v main.cpp 
-// ./obj_dir/VRV32
-// gtkwave ./out.vcd
+// Source: https://github.com/106-inc/sim2022
+void RegfileStr(const uint32_t *registers) {
+  std::cout << std::setfill('0');
+  constexpr std::size_t lineNum = 8;
+
+  for (std::size_t i = 0; i < lineNum; ++i) {
+    for (std::size_t j = 0; j < 32 / lineNum; ++j) {
+      auto regIdx = j * lineNum + i;
+      auto &reg = registers[regIdx];
+      std::cout << "  [" << std::dec << std::setw(2) << regIdx << "] ";
+      std::cout << "0x" << std::hex << std::setw(sizeof(reg) * 2) << reg;
+    }
+    std::cout << std::endl;
+  }
+}
 
 int main(int argc, char **argv) {
   // Initialize Verilators variables
   Verilated::commandArgs(argc, argv);
 
-  VRV32 *top_module = new VRV32;
+  // parse cmd line
+  CLI::App cli_app("RISC-V 2023");
+  std::string path_to_exec{};
+  std::string path_to_trace{};
+  cli_app.add_option("-p,--path", path_to_exec, "Path to executable file")
+      ->required();
+  cli_app.add_option("--trace", path_to_trace, "Path for trace dump");
+  CLI11_PARSE(cli_app, argc, argv);
 
-  VerilatedVcdC *vcd = nullptr;
-  Verilated::traceEverOn(true); // Verilator must compute traced signals
-  vcd = new VerilatedVcdC;
-  top_module->trace(vcd, 99); // Trace 99 levels of hierarchy
-  vcd->open("out.vcd");       // Open the dump file
+  auto top_module = std::make_unique<VRV32>();
 
-  // load instructions from ELF!
-  std::fill(top_module->RV32->imem->mem_buff, 
-  top_module->RV32->imem->mem_buff+1024,
-  0b0000000'0000000010'000'00001'0110011);
-  top_module->RV32->imem->mem_buff[0x4] = 
-  0b1111000'0111100000'000'00010'0010011;  
-  top_module->RV32->imem->mem_buff[0x8] = 
-  0b1111000'0111100000'000'00010'0010011;
+  Verilated::traceEverOn(true);
+  auto vcd = std::make_unique<VerilatedVcdC>();
+  top_module->trace(vcd.get(), 10); // Trace 10 levels of hierarchy
+  vcd->open("out.vcd");             // Open the dump file
 
-  // switch the clock
+  // load instructions from ELF
+  ELFIO::elfio m_reader{};
+  if (!m_reader.load(path_to_exec))
+    throw std::invalid_argument("Bad ELF filename : " + path_to_exec);
+  if (m_reader.get_class() != ELFIO::ELFCLASS32) {
+    throw std::runtime_error("Wrong ELF file class.");
+  }
+  // Check for little-endian
+  if (m_reader.get_encoding() != ELFIO::ELFDATA2LSB) {
+    throw std::runtime_error("Wrong ELF encoding.");
+  }
+  ELFIO::Elf_Half seg_num = m_reader.segments.size();
+  //
+  for (size_t seg_i = 0; seg_i < seg_num; ++seg_i) {
+    const ELFIO::segment *segment = m_reader.segments[seg_i];
+    if (segment->get_type() != ELFIO::PT_LOAD) {
+      continue;
+    }
+    uint32_t address = segment->get_virtual_address();
+    // FIXME: cause by separeting instr and data memory
+    if (address >> 17) {
+      throw std::runtime_error("Try load ELF to data mem! " +
+                               std::to_string(address));
+    }
+    size_t filesz = static_cast<size_t>(segment->get_file_size());
+    size_t memsz = static_cast<size_t>(segment->get_memory_size());
+    if (filesz) {
+      const auto *begin =
+          reinterpret_cast<const uint8_t *>(segment->get_data());
+      uint8_t *dst =
+          reinterpret_cast<uint8_t *>(top_module->RV32->imem->mem_buff);
+      std::copy(begin, begin + filesz, dst + address);
+    }
+  }
+
+  // init pc
+  top_module->RV32->pc_module->pc = m_reader.get_entry();
+
+  // std::ofstream trace_out(path_to_trace);
+
   vluint64_t vtime = 0;
   int clock = 0;
   top_module->clk = 0;
-  top_module->StallIF = 0;
-  top_module->StallID = 0;
-  top_module->EnableID = 1;
-  top_module->FlushE = 0;
   while (!Verilated::gotFinish()) {
     vtime += 1;
-    if (vtime % 4 == 0)
+    if (vtime % 8 == 0) {
+      // switch the clock
       clock ^= 1;
+      if (!clock && top_module->valid_out) {
+        std::cout << "*********************************************************"
+                     "**********************"
+                  << std::endl;
+        std::cout << std::hex << "0x" << (unsigned)top_module->pc_out << ": "
+                  << "CMD" << std::dec << " rd = " << (int)top_module->rdn_out
+                  << ", rs1 = " << (int)top_module->rs1n_out
+                  << ", rs2 = " << (int)top_module->rs2n_out << std::hex
+                  << ", imm = 0x" << top_module->imm_out << std::dec
+                  << std::endl;
+
+        RegfileStr(top_module->RV32->reg_file->registers);
+      }
+    }
+    if (top_module->Exception & (top_module->clk == 0)) {
+      std::cout << "Simulation end!" << std::endl;
+      break;
+    }
 
     top_module->clk = clock;
     top_module->eval();
     vcd->dump(vtime);
 
-	// test
-    if (vtime > 100 && vtime < 140) {
-      top_module->StallIF = 1;
-      top_module->StallID = 1;
-    } else {
-      top_module->StallIF = 0;
-      top_module->StallID = 0;
-    }
-
-    std::cout << "pc_out " << top_module->pc_out << std::endl;
-
-    if (vtime > 300)
+    if (vtime > 1000) {
+      std::cout << "VTime limit!" << std::endl;
       break;
+    }
   }
 
   top_module->final();
-  if (vcd)
-    vcd->close();
-  delete top_module;
-  exit(EXIT_SUCCESS);
+  vcd->close();
+
+  return 0;
 }

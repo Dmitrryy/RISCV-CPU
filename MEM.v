@@ -29,7 +29,7 @@ begin
         if(width[0:0]) begin
             mem_buff[addr][15:8] <= write_data[15:8];
         end else if(width[1:1]) begin
-            mem_buff[addr][31:16] <= write_data[31:16];
+            mem_buff[addr][31:8] <= write_data[31:8];
         end
     end
 end

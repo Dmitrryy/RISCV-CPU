@@ -29,7 +29,9 @@ module DECODER (
     // 00 - pc + 4
     // 01 - pc + imm
     // 11 - rs1 + imm
-    output logic [1:0] NextPC
+    output logic [1:0] NextPC,
+
+    output logic Exception = 0, valid
 );
 
 localparam [6:0]R_TYPE  = 7'b0110011,
@@ -40,7 +42,8 @@ localparam [6:0]R_TYPE  = 7'b0110011,
                 JALR    = 7'b1100111,
                 JAL     = 7'b1101111,
                 AUIPC   = 7'b0010111,
-                LUI     = 7'b0110111;
+                LUI     = 7'b0110111,
+                ZERO    = 7'b0000000; // empty state (after rst)
 
 wire [6:0] opcode;
 wire [6:0] funct7;
@@ -93,6 +96,8 @@ always @(*) begin
             Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
+            Exception = 0;
+            valid = 1;
             if (funct3 == 3'b000) begin 
                 if (funct7 == 7'b0000000) begin 
                     ALU_op = `ALU_ADD;
@@ -128,6 +133,8 @@ always @(*) begin
             Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
+            Exception = 0;
+            valid = 1;
             if (funct3 == 3'b000) begin
                 ALU_op = `ALU_ADD; //addi 
             end else if (funct3 == 3'b001) begin
@@ -160,6 +167,8 @@ always @(*) begin
             RegWrite = 0;
             NextPC = 2'b00; // pc + 4
             ALU_op = `ALU_ADD;
+            Exception = 0;
+            valid = 1;
         end
         LOAD: begin
             MemToReg = 1;
@@ -171,6 +180,8 @@ always @(*) begin
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
             ALU_op = `ALU_ADD;
+            Exception = 0;
+            valid = 1;
         end
         BRANCH: begin
             MemToReg = 0;
@@ -181,6 +192,8 @@ always @(*) begin
             Jump = 0;
             RegWrite = 0;
             NextPC = 2'b01; // pc + imm
+            Exception = 0;
+            valid = 1;
             if (funct3 == 3'b000) begin 
                 ALU_op = `ALU_SUB; //beq
                 InvertBranchTriger = 1;
@@ -211,6 +224,8 @@ always @(*) begin
             RegWrite = 1;
             // next pc is rs1 + imm
             NextPC = 2'b11;
+            Exception = 0;
+            valid = 1;
         end
         JAL: begin
             MemToReg = 0;
@@ -222,6 +237,8 @@ always @(*) begin
             RegWrite = 1;
             // next pc is pc + imm
             NextPC = 2'b01;
+            Exception = 0;
+            valid = 1;
         end
         AUIPC: begin
             MemToReg = 0;
@@ -233,6 +250,8 @@ always @(*) begin
             Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
+            Exception = 0;
+            valid = 1;
         end
         LUI: begin
             MemToReg = 0;
@@ -244,8 +263,25 @@ always @(*) begin
             Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
+            Exception = 0;
+            valid = 1;
         end
-        default: $display("Unsapported instraction type: 0x%0h", instr);
+        ZERO: begin
+            MemToReg = 0;
+            MemWrite = 0;
+            ALUSrc1 = 1'bx;
+            ALUSrc2 = 2'bxx; // imm
+            Branch = 0;
+            Jump = 0;
+            RegWrite = 0;
+            NextPC = 2'b00; // pc + 4
+            Exception = 0;
+            valid = 0;
+        end
+        default: begin 
+            Exception = 1;
+            valid = 1; 
+        end
     endcase
 end
 
