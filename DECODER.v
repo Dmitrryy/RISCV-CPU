@@ -11,8 +11,8 @@ module DECODER (
     output [2:0] mem_width,
 
     // control unit out
-    output reg [3:0] ALU_op,
-    output reg MemToReg, MemWrite,
+    output logic [3:0] ALU_op,
+    output logic MemToReg, MemWrite,
     // ALUSrc1:
     // 0 - rs1
     // 1 - pc
@@ -20,10 +20,11 @@ module DECODER (
     // 00 - rs2
     // 01 - imm
     // 11 - 4
-    output reg ALUSrc1, 
-    output reg [1:0] ALUSrc2,
-    output reg /*RegDst,*/ RegWrite,
-    output reg Branch, InvertBranchTriger,
+    output logic ALUSrc1, 
+    output logic [1:0] ALUSrc2,
+    output logic /*RegDst,*/ RegWrite,
+    output logic Branch, InvertBranchTriger,
+    output logic Jump,
     // NextPC:
     // 00 - pc + 4
     // 01 - pc + imm
@@ -89,6 +90,7 @@ always @(*) begin
             ALUSrc1 = 0;
             ALUSrc2 = 2'b00;
             Branch = 0;
+            Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
             if (funct3 == 3'b000) begin 
@@ -123,6 +125,7 @@ always @(*) begin
             ALUSrc1 = 0;
             ALUSrc2 = 2'b01; // imm
             Branch = 0;
+            Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
             if (funct3 == 3'b000) begin
@@ -153,6 +156,7 @@ always @(*) begin
             ALUSrc1 = 0;
             ALUSrc2 = 2'b01; // imm
             Branch = 0;
+            Jump = 0;
             RegWrite = 0;
             NextPC = 2'b00; // pc + 4
             ALU_op = `ALU_ADD;
@@ -163,6 +167,7 @@ always @(*) begin
             ALUSrc1 = 0;
             ALUSrc2 = 2'b01; // imm
             Branch = 0;
+            Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
             ALU_op = `ALU_ADD;
@@ -173,6 +178,7 @@ always @(*) begin
             ALUSrc1 = 0;
             ALUSrc2 = 2'b00; // rs2
             Branch = 1;
+            Jump = 0;
             RegWrite = 0;
             NextPC = 2'b01; // pc + imm
             if (funct3 == 3'b000) begin 
@@ -200,7 +206,8 @@ always @(*) begin
             MemWrite = 0;
             ALUSrc1 = 1; // pc
             ALUSrc2 = 2'b11; // 4
-            Branch = 1;
+            Branch = 0;
+            Jump = 1;
             RegWrite = 1;
             // next pc is rs1 + imm
             NextPC = 2'b11;
@@ -210,7 +217,8 @@ always @(*) begin
             MemWrite = 0;
             ALUSrc1 = 1; // pc
             ALUSrc2 = 2'b11; // 4
-            Branch = 1;
+            Branch = 0;
+            Jump = 1;
             RegWrite = 1;
             // next pc is pc + imm
             NextPC = 2'b01;
@@ -222,6 +230,7 @@ always @(*) begin
             ALUSrc2 = 2'b01; // imm
             ALU_op = `ALU_ADD;
             Branch = 0;
+            Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
         end
@@ -232,10 +241,11 @@ always @(*) begin
             ALUSrc2 = 2'b01; // imm
             ALU_op = `ALU_B;
             Branch = 0;
+            Jump = 0;
             RegWrite = 1;
             NextPC = 2'b00; // pc + 4
         end
-        default: $display("Unsapported instraction type");
+        default: $display("Unsapported instraction type: 0x%0h", instr);
     endcase
 end
 

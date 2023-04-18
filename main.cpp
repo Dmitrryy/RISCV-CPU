@@ -26,7 +26,11 @@ int main(int argc, char **argv) {
   // load instructions from ELF!
   std::fill(top_module->RV32->imem->mem_buff, 
   top_module->RV32->imem->mem_buff+1024,
-  0b0000000'1010101010'000'11100'0110011);
+  0b0000000'0000000010'000'00001'0110011);
+  top_module->RV32->imem->mem_buff[0x4] = 
+  0b1111000'0111100000'000'00010'0010011;  
+  top_module->RV32->imem->mem_buff[0x8] = 
+  0b1111000'0111100000'000'00010'0010011;
 
   // switch the clock
   vluint64_t vtime = 0;

@@ -11,7 +11,7 @@ module RGF(
     output [31:0] val2  // read value of rn2
 );
 
-reg [31:0] registers [31:1];
+reg [31:0] registers [31:1] /*verilator public*/;
 
 // read registers
 assign val1 = (rn1 == 0) ? 0 : registers[rn1];
