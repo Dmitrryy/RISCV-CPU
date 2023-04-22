@@ -44,7 +44,7 @@ wire [31:0] imm32_EX, rs1_val_EX;
 wire [1:0] NextPC_EX;
 wire [1:0] TakenNextPC_EX = (BranchIsTaken_EX) ? NextPC_EX : 2'b00;
 wire PCEn = !Stall_IF & !Exception_WB;
-RegPC pc_module(clk, PCEn, NextPC_EX, pc_EX, imm32_EX, rs1_val_EX, pc_IF);
+RegPC pc_module(clk, PCEn, TakenNextPC_EX, pc_EX, imm32_EX, rs1_val_EX, pc_IF);
 
 wire [31:0] instr_IF;
 MEM #(.N(17), .DW(32)) imem(clk, pc_IF >> 2, 3'b010 /*32w*/, 0/*we*/, 0, instr_IF);
@@ -108,7 +108,7 @@ wire[31:0] ALUOut_EX;
 wire ALUZero_EX;
 ALU alu(ALUSrc1_val_EX, ALUSrc2_val_EX, alu_op_EX, ALUOut_EX, ALUZero_EX);
 // branch logic
-assign BranchIsTaken_EX = (Jump_EX) || (Branch_EX && (InvertBranchTriger_EX ^ (ALUOut_EX != 1)));
+assign BranchIsTaken_EX = (Jump_EX) || (Branch_EX && (InvertBranchTriger_EX ^ (ALUOut_EX != 0)));
 
 // EX to MEM pipe register
 wire [31:0] pc_MEM, ALUOut_MEM, MemWriteData_MEM;
