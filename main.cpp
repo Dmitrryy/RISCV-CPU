@@ -34,10 +34,10 @@ int main(int argc, char **argv) {
   // parse cmd line
   CLI::App cli_app("RISC-V 2023");
   std::string path_to_exec{};
-  std::string path_to_trace{};
+  bool is_trace = false;
   cli_app.add_option("-p,--path", path_to_exec, "Path to executable file")
       ->required();
-  cli_app.add_option("--trace", path_to_trace, "Path for trace dump");
+  cli_app.add_option("--trace", is_trace, "Path for trace dump");
   CLI11_PARSE(cli_app, argc, argv);
 
   auto top_module = std::make_unique<VRV32>();
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     if (vtime % 8 == 0) {
       // switch the clock
       clock ^= 1;
-      if (!clock && top_module->valid_out) {
+      if (is_trace && !clock && top_module->valid_out) {
         std::cout << "*********************************************************"
                      "**********************"
                   << std::endl;
@@ -117,11 +117,6 @@ int main(int argc, char **argv) {
     top_module->clk = clock;
     top_module->eval();
     vcd->dump(vtime);
-
-    if (vtime > 1000) {
-      std::cout << "VTime limit!" << std::endl;
-      break;
-    }
   }
 
   top_module->final();
