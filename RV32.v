@@ -5,7 +5,8 @@ module RV32(
 
     output Exception, valid_out,
     output logic [31:0] pc_out, imm_out,
-    output logic [4:0] rs1n_out, rs2n_out, rdn_out
+    output logic [4:0] rs1n_out, rs2n_out, rdn_out,
+    output RegWrite_out
 );
 // hazard unit
 //=--------------------------------------------------------
@@ -26,6 +27,7 @@ wire BranchIsTaken_EX;
 // exception command (ecall, fence ...)
 wire Exception_WB;
 assign Exception = Exception_WB;
+assign RegWrite_out = RegWrite_WB;
 
 HAZARD hazard(
 RegWrite_MEM, RegWrite_WB, rs1n_EX, rs2n_EX, rdn_MEM, rdn_WB, 
@@ -44,7 +46,7 @@ wire [31:0] imm32_EX, rs1_val_EX;
 wire [1:0] NextPC_EX;
 wire [1:0] TakenNextPC_EX = (BranchIsTaken_EX) ? NextPC_EX : 2'b00;
 wire PCEn = !Stall_IF & !Exception_WB;
-RegPC pc_module(clk, PCEn, TakenNextPC_EX, pc_EX, imm32_EX, rs1_val_EX, pc_IF);
+RegPC pc_module(clk, PCEn, TakenNextPC_EX, pc_EX, imm32_EX, rs1_val_forwarded_EX, pc_IF);
 
 wire [31:0] instr_IF;
 MEM #(.N(17), .DW(32)) imem(clk, pc_IF >> 2, 3'b010 /*32w*/, 0/*we*/, 0, instr_IF);
