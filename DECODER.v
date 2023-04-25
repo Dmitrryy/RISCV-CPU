@@ -66,10 +66,10 @@ wire [31:0] i_imm_32, s_imm_32, b_imm_32, u_imm_32, j_imm_32, shamt_32;
 assign i_imm_32 = { {20{instr[31]}}, instr[31:20]}; // I-type
 assign s_imm_32 = { {20{instr[31]}}, instr[31:25], instr[11:7]}; // S-Type
 assign b_imm_32 = { {20{instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0}; //B-type
-assign u_imm_32 = { instr[31:12], 12'b000000000000}; // U-type
+assign u_imm_32 = { instr[31:12]   , {12{1'b0}}}; // U-type
 assign j_imm_32 = { {12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0}; // J-type 
 
-assign shamt_32 = {27'b000000000000000000000000000, instr[24:20]};
+assign shamt_32 = {{27{1'b0}}, instr[24:20]};
 
 assign imm32 =  (opcode == I_TYPE && funct3 == 3'b001)? shamt_32:  //SLLI
                 (opcode == I_TYPE && funct3 == 3'b101)? shamt_32:  //SRLI

@@ -8,23 +8,18 @@ module ALU(input [31:0] a,b,
 );
 always @(*) begin 
   case (ALUop)
-    `ALU_ADD: ALUOut=a+b;
-    `ALU_SUB: ALUOut=a-b;
-    `ALU_AND: ALUOut=a&b;
-    `ALU_OR: ALUOut=a|b;
-    `ALU_XOR: ALUOut=a^b;
-    //left shift logical
-    `ALU_SHL: ALUOut=a<<b[4:0];
-    //right shift logical
-    `ALU_SHR: ALUOut=a>>b[4:0];
-    //arithmetic right shift
-    `ALU_SHA: ALUOut=$signed(a)>>>$signed(b[4:0]);
-    //set less than
-    `ALU_SLT: ALUOut=$signed(a) < $signed(b)? 32'b1:32'b0;
-    //set less than unsigned
-    `ALU_SLTU: ALUOut=a < b ? 32'b1:32'b0;
-    `ALU_A: ALUOut = a;
-    `ALU_B: ALUOut = b;
+    `ALU_ADD:  ALUOut = a + b;
+    `ALU_SUB:  ALUOut = a - b;
+    `ALU_AND:  ALUOut = a & b;
+    `ALU_OR:   ALUOut = a | b;
+    `ALU_XOR:  ALUOut = a ^ b;
+    `ALU_SHL:  ALUOut = a << b[4:0];
+    `ALU_SHR:  ALUOut = a >> b[4:0];
+    `ALU_SHA:  ALUOut = $signed(a)>>>$signed(b[4:0]);
+    `ALU_SLT:  ALUOut = {{31{1'b0}}, $signed(a) < $signed(b)};
+    `ALU_SLTU: ALUOut = {{31{1'b0}} , a < b};
+    `ALU_A:    ALUOut = a;
+    `ALU_B:    ALUOut = b;
     //by default do nothing
     default: ;
    endcase 
