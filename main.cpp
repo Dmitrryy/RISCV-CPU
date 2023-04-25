@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
   // parse cmd line
   CLI::App cli_app("RISC-V 2023");
   std::string path_to_exec{};
-  bool is_trace = false;
+  int is_trace = 0;
   cli_app.add_option("-p,--path", path_to_exec, "Path to executable file")
       ->required();
   cli_app.add_option("--trace", is_trace, "Path for trace dump");
@@ -90,28 +90,49 @@ int main(int argc, char **argv) {
   vluint64_t vtime = 0;
   int clock = 0;
   top_module->clk = 0;
+  int inst_counter = 0;
+  int tackt = 0;
   while (!Verilated::gotFinish()) {
     vtime += 1;
     if (vtime % 8 == 0) {
       // switch the clock
-      clock ^= 1;
-      if (is_trace && !clock && top_module->valid_out) {
-        std::cout << "*********************************************************"
-                     "**********************"
-                  << std::endl;
-        std::cout << std::hex << "0x" << (unsigned)top_module->pc_out << ": "
-                  << "CMD" << std::dec << " rd = " << (int)top_module->rdn_out
-                  << ", rs1 = " << (int)top_module->rs1n_out
-                  << ", rs2 = " << (int)top_module->rs2n_out << std::hex
-                  << ", imm = 0x" << top_module->imm_out << std::dec
-                  << std::endl;
+      if (!clock && top_module->valid_out) {
+        if (is_trace == 1) {
+          std::cout
+              << "*********************************************************"
+                 "**********************"
+              << std::endl;
+          std::cout << std::hex << "0x" << (unsigned)top_module->pc_out << ": "
+                    << "CMD" << std::dec << " rd = " << (int)top_module->rdn_out
+                    << ", rs1 = " << (int)top_module->rs1n_out
+                    << ", rs2 = " << (int)top_module->rs2n_out << std::hex
+                    << ", imm = 0x" << top_module->imm_out << std::dec
+                    << std::endl;
 
-        RegfileStr(top_module->RV32->reg_file->registers);
+          RegfileStr(top_module->RV32->reg_file->registers);
+        } else if (is_trace == 2) {
+          std::cout << "***********************************\n";
+          std::cout << "TAKT: " << std::dec << tackt << std::endl;
+          std::cout << "NUM: " << std::dec << inst_counter++ << std::endl;
+          std::cout << "PC : "
+                    << "0x" << std::hex << (unsigned)top_module->pc_out
+                    << std::endl;
+          if (top_module->RegWrite_out && top_module->rdn_out != 0) {
+            std::cout
+                << "X" << std::dec << (int)top_module->rdn_out << " = 0x"
+                << std::hex
+                << top_module->RV32->reg_file->registers[top_module->rdn_out]
+                << std::endl;
+          }
+        }
       }
-    }
-    if (top_module->Exception & (top_module->clk == 0)) {
-      std::cout << "Simulation end!" << std::endl;
-      break;
+      if (top_module->Exception & (top_module->clk == 0)) {
+        std::cout << "Simulation end! Registers:" << std::endl;
+        RegfileStr(top_module->RV32->reg_file->registers);
+        break;
+      }
+      clock ^= 1;
+      tackt += clock;
     }
 
     top_module->clk = clock;
